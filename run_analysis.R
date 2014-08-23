@@ -1,5 +1,5 @@
 ##
-## Coursera - "Getting and Cleaning Data" Course Project
+## Getting and Cleaning Data - Course Project
 ##
 ## This script performs the functions necessary to create a tidy data set, as
 ## called for in this class project, based on the accelerometer data provided.
@@ -52,6 +52,7 @@ cleanHARdata <- function(){
   # a) Melt table to single variable (i.e., name of each measurement)
   # b) Calculate the average for each measurement for each subject and each activity
   dtm <- as.data.table(melt(dt,id = c("subject","activity")))
+  dtm <- dtm[, mean(value), by=list(subject,activity,variable)]
 
 #   dtm <- as.data.table(melt(dt,
 #                             id = c("subject","activity"),
@@ -59,10 +60,8 @@ cleanHARdata <- function(){
 #                             value.name = "average"))
 #   dtm <- dtm[, mean(average), by=list(subject,activity,measure)]
 
-  dtm <- dtm[, mean(value), by=list(subject,activity,variable)]
-  
   # Change column names - could not get the following to work:
-  # melt(..., variable.name = "measure", value.name = "mean)
+  # melt(..., variable.name = "measure", value.name = "mean")
   # So, we set names explicitly
   setnames(dtm, c("variable", "V1"), c("measure", "mean"))
 
@@ -127,6 +126,30 @@ labelActivity <- function(dt, files) {
 }
 
 #
+# Edit column names in f to create appropriate labels for data set dt.
+#
+labelVariables <- function(dt, f) {
+  
+  # Acknowledging the lecture's guidance on naming text variables,
+  # a slightly different convention is used here. Periods replace dashes
+  # and whitespace to improve legibility, since the variable names are very long.
+  # It was also important to easily identify original columns used in the
+  # analysis for traceability purposes, since many are dropped. Therefore, 
+  # feature (variable) names are prefixed with a unique ID (vNNN), where NNN
+  # is the original column number.  
+  ftmp <- sapply(f, function(x) sprintf("v%03d.%s", f[,1], f[,2]))[,1]
+  
+  # Replace dashes, commas, and whitespace with a period
+  ftmp <- gsub("[-,[:blank:]]", ".", ftmp)
+  
+  # Use names consisting only of dots and alphanumeric characters
+  ftmp <- gsub("[^[:alnum:].]", "", ftmp)
+  
+  # Set new column names
+  setnames(dt, ftmp)
+}
+
+#
 # Append subject/activity data to specified data frame
 #
 mergeActivity <- function(dt, files, cols) {
@@ -162,29 +185,4 @@ mergeObs <- function(files) {
   
   # Append test to train set
   ds <- rbind(xf1, xf2)
-}
-
-
-#
-# Edit column names in f to create appropriate labels for data set dt.
-#
-labelVariables <- function(dt, f) {
-
-  # Acknowledging the lecture's guidance on naming text variables,
-  # a slightly different convention is used. Periods replace dashes
-  # and whitespace improve legibility, since the variable names are very long.
-  # It was also important to easily identify original columns used in the
-  # analysis for traceability purposes, since many are dropped. Therefore, 
-  # feature (variable) names are prefixed with a unique ID (vNNN), where NNN
-  # is the original column number, and .  
-  ftmp <- sapply(f, function(x) sprintf("v%03d.%s", f[,1], f[,2]))[,1]
-
-  # Replace dashes, commas, and whitespace with a period
-  ftmp <- gsub("[-,[:blank:]]", ".", ftmp)
-
-  # Use names consisting only of dots and alphanumeric characters
-  ftmp <- gsub("[^[:alnum:].]", "", ftmp)
-
-  # Set new column names
-  setnames(dt, ftmp)
 }
